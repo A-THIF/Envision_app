@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="tileColor">#46F0D2</color>
+    <color name="topBarColor">#131321</color>
+    <color name="backgroundColor">#1A1A2E</color>
+    <color name="iconColor">#FBE2B4</color>
+    <color name="fontColor">#FFFFFF</color>
+    <color name="tileTextColor">#131321</color>
+
+    <!-- Standard Material colors to avoid build errors -->
+    <color name="purple_500">#6200EE</color>
+    <color name="purple_700">#3700B3</color>
+    <color name="white">#FFFFFF</color>
+</resources>

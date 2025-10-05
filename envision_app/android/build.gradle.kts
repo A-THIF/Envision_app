@@ -1,10 +1,24 @@
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath("com.android.tools.build:gradle:8.3.2")
+    }
+}
+
 allprojects {
     repositories {
         google()
         mavenCentral()
     }
 }
-
+ext {
+    set("compileSdkVersion", 34)
+    set("targetSdkVersion", 34)
+    set("appCompatVersion", "1.6.1")
+}
 val newBuildDir: Directory = rootProject.layout.buildDirectory.dir("../../build").get()
 rootProject.layout.buildDirectory.value(newBuildDir)
 
@@ -12,6 +26,7 @@ subprojects {
     val newSubprojectBuildDir: Directory = newBuildDir.dir(project.name)
     project.layout.buildDirectory.value(newSubprojectBuildDir)
 }
+
 subprojects {
     project.evaluationDependsOn(":app")
 }

@@ -1,68 +1,87 @@
 import 'dart:async';
-import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
+import 'dart:typed_data';
+import 'package:intl/intl.dart';
 
 class BluetoothService extends ChangeNotifier {
   BluetoothConnection? _connection;
-  BluetoothDevice? _connectedDevice;
-  bool _isConnected = false;
-  bool _isConnecting = false;
+  BluetoothDevice? connectedDevice;
+  bool isConnected = false;
 
-  // Stream for incoming data
-  final StreamController<String> _dataController = StreamController.broadcast();
+  // Store data log as timestamped entries
+  final List<String> _dataLog = [];
+  final StreamController<String> _dataController =
+      StreamController<String>.broadcast();
+
   Stream<String> get dataStream => _dataController.stream;
+  List<String> get dataLog => List.unmodifiable(_dataLog);
 
-  bool get isConnected => _isConnected;
-  bool get isConnecting => _isConnecting;
-  BluetoothDevice? get connectedDevice => _connectedDevice;
-
-  // Connect to device
+  // Connect to a Bluetooth device
   Future<void> connectToDevice(BluetoothDevice device) async {
-    if (_isConnecting || _isConnected) return;
-
-    _isConnecting = true;
-    notifyListeners();
-
     try {
+      // If connected to a different device, disconnect first
+      if (isConnected && connectedDevice?.address != device.address) {
+        await disconnect();
+      }
+
+      if (_connection != null) {
+        // Already connected to this device, do nothing
+        return;
+      }
+
       _connection = await BluetoothConnection.toAddress(device.address);
-      _connectedDevice = device;
-      _isConnected = true;
-      _isConnecting = false;
+      connectedDevice = device;
+      isConnected = true;
       notifyListeners();
 
-      // Listen for incoming data
-      _connection!.input
-          ?.listen((data) {
-            String text = String.fromCharCodes(data).trim();
-            _dataController.add(text);
-          })
-          .onDone(() {
-            _isConnected = false;
-            _connectedDevice = null;
-            notifyListeners();
-          });
+      _connection!.input?.listen(_onDataReceived).onDone(() {
+        _connection = null;
+        isConnected = false;
+        // Keep connectedDevice as last tried device to allow reconnect
+        notifyListeners();
+      });
     } catch (e) {
-      _isConnected = false;
-      _connectedDevice = null;
-      _isConnecting = false;
+      _connection = null;
+      isConnected = false;
+      connectedDevice = null;
       notifyListeners();
-      print('Cannot connect: $e');
+      rethrow;
     }
   }
 
-  // Disconnect
+  // Disconnect from current device
   Future<void> disconnect() async {
     await _connection?.close();
     _connection = null;
-    _connectedDevice = null;
-    _isConnected = false;
+    isConnected = false;
+    // Keep connectedDevice intact for reconnect
     notifyListeners();
   }
 
-  void disposeService() {
+  // Called on incoming Bluetooth data
+  void _onDataReceived(Uint8List data) {
+    final incoming = String.fromCharCodes(data);
+    final timestamp = DateFormat('HH:mm:ss').format(DateTime.now());
+
+    // Store with timestamp prefix to preserve original receive time
+    final timestampedEntry = '[$timestamp] $incoming';
+
+    _dataLog.add(timestampedEntry);
+    _dataController.add(timestampedEntry);
+    notifyListeners();
+  }
+
+  // Clear data log
+  void clearLog() {
+    _dataLog.clear();
+    notifyListeners();
+  }
+
+  @override
+  void dispose() {
     _dataController.close();
     _connection?.dispose();
-    _connection = null;
-    _connectedDevice = null;
+    super.dispose();
   }
 }
