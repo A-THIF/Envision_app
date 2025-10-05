@@ -30,7 +30,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  flutter_bluetooth_serial: ^0.3.2
+  flutter_bluetooth_serial: 0.4.0
+
   speech_to_text: ^7.3.0
   flutter_tts: ^4.2.3
   provider: ^6.0.5
